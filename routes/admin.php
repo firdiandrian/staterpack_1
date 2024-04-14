@@ -60,16 +60,16 @@ Route::group(['prefix' => 'admin-panel', 'as' => 'admin.'], function () {
             ->group(function () {
                 Route::get('basic-info', [BasicInfoController::class, 'edit'])->name('basic-info.edit');
                 Route::put('basic-info', [BasicInfoController::class, 'update']);
-                Route::get('index', [AboutController::class, 'index'])->name('about.index');
-                Route::get('about', [AboutController::class, 'edit'])->name('about.edit');
-                Route::put('about', [AboutController::class, 'update'])->name('about.update');
+                // Route::get('index', [AboutController::class, 'index'])->name('about.index');
+                // Route::get('about', [AboutController::class, 'edit'])->name('about.edit');
+                // Route::put('about', [AboutController::class, 'update'])->name('about.update');
                 Route::get('logo', [LogoController::class, 'edit'])->name('logo.edit');
                 Route::put('logo', [LogoController::class, 'update'])->name('logo.update');
-                Route::get('breadcrumb', [BreadcrumbController::class, 'edit'])->name('breadcrumb.edit');
-                Route::put('breadcrumb', [BreadcrumbController::class, 'update'])->name('breadcrumb.update');
-                Route::get('popup', [PopupsController::class, 'index'])->name('popup.index');
-                Route::get('popup/{popup}/edit', [PopupsController::class, 'edit'])->name('popup.edit');
-                Route::patch('popup/{popup}', [PopupsController::class, 'update'])->name('popup.update');
+                // Route::get('breadcrumb', [BreadcrumbController::class, 'edit'])->name('breadcrumb.edit');
+                // Route::put('breadcrumb', [BreadcrumbController::class, 'update'])->name('breadcrumb.update');
+                // Route::get('popup', [PopupsController::class, 'index'])->name('popup.index');
+                // Route::get('popup/{popup}/edit', [PopupsController::class, 'edit'])->name('popup.edit');
+                // Route::patch('popup/{popup}', [PopupsController::class, 'update'])->name('popup.update');
             });
     });
 });

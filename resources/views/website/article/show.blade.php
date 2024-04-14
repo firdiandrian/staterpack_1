@@ -104,7 +104,7 @@
                                 <div class="sidebar__widget-content">
                                     <ul>
                                         @foreach ($categoryArticles as $categoryArticle)
-                                            <li><a href="{{ route('article.index', $categoryArticle->slug) }}">{{ $categoryArticle->name }}<span><i
+                                            <li><a href="{{ route('.index', $categoryArticle->slug) }}">{{ $categoryArticle->name }}<span><i
                                                             class="fal fa-angle-right"></i></span></a></li>
                                         @endforeach
                                     </ul>
