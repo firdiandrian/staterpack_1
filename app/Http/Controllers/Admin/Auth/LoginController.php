@@ -10,7 +10,6 @@ use App\User;
 use App\Models\PasswordResetToken;
 use App\Mail\ResetPasswordMail;
 use Illuminate\Support\Facades\Mail;
-
 use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Auth;
@@ -22,33 +21,38 @@ use Illuminate\Http\RedirectResponse;
 
 class LoginController extends Controller
 {
-    public function index()
-    {
-        $logo = Setting::key(Setting::LOGO)->value('value');
-        $icon = Setting::key(Setting::ICON)->value('value');
-        $setting = (object) compact('logo', 'icon');
+    public function index(){
+        $logo       = @Setting::key(Setting::LOGO)->first()->value;       
+        $icon       = @Setting::key(Setting::ICON)->first()->value;       
+        $setting    = (object) compact('logo','icon');
         return view('admin.auth.login', compact('setting'));
     }
 
-    public function store(Request $request)
-    {
-        $credentials = $request->validate([
+    public function store(Request $request){
+        $this->validate($request,[
             'username' => 'required',
             'password' => 'required'
         ]);
 
-        $remember = $request->filled('remember');
+        $credentials = [
+            'username' => $request->username,
+            'password' => $request->password
+        ];
+        $remember = $request->remember;
 
-        if (Auth::guard('web')->attempt($credentials, $remember)) {
+        $admin = auth()->guard('web')->attempt($credentials, $remember);
+
+        if($admin){
             return redirect()->intended(route('admin.index'));
         }
 
-        return redirect()->back()->withInput($request->only('username', 'remember'));
+        return redirect()->back()->withInput($request->only('username','remember'));
     }
 
     public function logout()
     {
         Auth::logout();
+
         return redirect()->back();
     }
 
@@ -60,33 +64,54 @@ class LoginController extends Controller
 
     public function register(Request $request)
     {
-        $data = $request->validate([
-            'name' => 'required',
-            'username' => ['required', Rule::unique('users')],
-            'email' => ['required', Rule::unique('users')],
-            'password' => ['required', 'confirmed'],
-            'role' => ['required', Rule::notIn(['superadmin'])],
+        $request->validate([
+            'name' => ['required'],
+            'username' => [
+                'required',
+                Rule::unique('users')
+            ],
+            'email' => [
+                'required',
+                Rule::unique('users')
+            ],
+            'password' => [
+                'required',
+                'confirmed'
+            ],
+            'role' => [
+                'required',
+                Rule::notIn(['superadmin'])
+            ],
             'image' => ['image']
         ]);
 
-        $user = User::create([
-            'name' => $data['name'],
-            'username' => $data['username'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'image' => $request->file('image') ? $request->file('image')->store('ugc/images') : null,
-        ]);
+        $user = new User();
+        $user->password = Hash::make($request->password);
 
-        $user->syncRoles(Role::whereName($data['role'])->firstOrFail());
+        if ($request->file('image')) {
+            $newImage = $user->uploadImage($request->file('image'), 'ugc/images');
+        }
 
-        Auth::guard('web')->admin.auth.login($user);
+        $user->name = $request->name;
+        $user->username = $request->username;
+        $user->email = $request->email;
+        
+        if (@$newImage) {
+            $user->image = @$newImage->lg;
+        }
+        
+        $user->save();
+
+        $user->syncRoles(Role::whereName($request->role)->firstOrFail());
+
+        Auth::guard('web')->login($user);
 
         return redirect()->intended(route('admin.index'))->with([
             'status' => 'success',
             'message' => 'User has been created and logged in successfully'
         ]);
     }
-
+    
     public function showResetForm()
     {
         return view('admin.auth.reset');
@@ -122,57 +147,4 @@ class LoginController extends Controller
     // Redirect pengguna ke halaman reset password dengan pesan keberhasilan
     return redirect()->route('admin.auth.login')->with(['status' => 'success', 'message' => 'Password berhasil direset']);
 }
-
-
-
-    public function validasi_forgot_password_act(Request $request)
-    {
-        $customMessage = [
-            'password.required' => 'Password tidak boleh kosong',
-        ];
-    
-        $request->validate([
-            'password' => 'required'
-        ], $customMessage);
-    
-        // Temukan token berdasarkan token yang diberikan
-        $token = PasswordResetToken::where('token', $request->token)->first();
-    
-        // Periksa apakah token ditemukan dan belum kedaluwarsa
-        if (!$token || $token->expired_at < now()) {
-            return redirect()->route('admin.auth.login')->with(['status' => 'danger', 'message' => 'Token tidak valid atau sudah kedaluwarsa']);
-        }
-    
-        // Temukan pengguna berdasarkan alamat email yang terkait dengan token
-        $user = User::where('email', $token->email)->first();
-    
-        // Periksa apakah pengguna ditemukan
-        if (!$user) {
-            return redirect()->route('admin.auth.login')->with(['status' => 'danger', 'message' => 'Email tidak terdaftar di database']);
-        }
-    
-        // Perbarui password pengguna dengan password baru
-        $user->update([
-            'password' => Hash::make($request->password)
-        ]);
-    
-        // Hapus token dari tabel PasswordResetToken
-        $token->delete();
-    
-        // Redirect pengguna ke halaman login dengan pesan keberhasilan
-        return redirect()->route('admin.auth.login')->with(['status' => 'success', 'message' => 'Password berhasil direset']);
-    }
-    
-
-    public function validasi_forgot_password(Request $request, $token)
-    {
-        $getToken = PasswordResetToken::where('token', $token)->first();
-
-        if (!$getToken) {
-            return redirect()->route('admin.auth.login')->with(['status' => 'danger', 'message' => 'Token tidak valid']);
-        }
-
-        return view('admin.auth.validasi-token', compact('token'));
-    }
-
 }
